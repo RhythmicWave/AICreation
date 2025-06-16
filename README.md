@@ -54,6 +54,16 @@ npm install
 3. ComfyUI 模型配置
 - 参考教程：https://zhuanlan.zhihu.com/p/1898355945110759141
 
+> **本项目所需模型如下**：
+[clip_l](https://www.modelscope.cn/models/comfyanonymous/flux_text_encoders/files)（存放路径：ComfyUI\models\text_encoders）
+[t5xxl_fp8_e4m3fn](https://www.modelscope.cn/models/comfyanonymous/flux_text_encoders/files)（同上）
+[flux-vae](https://www.modelscope.cn/models/muse/flux_vae/files)(下载ae.safetensors后重命名为flux-vae.sft，存放路径：ComfyUI\models\vae)
+[FLUX.1-Turbo-Alpha](https://www.modelscope.cn/models/alimama-creative/FLUX.1-Turbo-Alpha/files)（下载diffusion_pytorch_model.safetensors，重命名为flux.1-Turbo.safetensors，存放路径：ComfyUI\models\loras）
+50显卡下载：
+[svdq-fp4-flux.1-dev](https://www.modelscope.cn/models/mit-han-lab/svdq-fp4-flux.1-dev/files)（下载整个文件夹，存放路径：ComfyUI\models\diffusion_models）
+非50显卡下载：
+[svdq-int4-flux.1-dev](https://www.modelscope.cn/models/mit-han-lab/svdq-int4-flux.1-dev)（同上）
+
 ## 运行指南
 
 1. 启动后端服务
