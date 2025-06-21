@@ -142,7 +142,7 @@ class ImageService(SingletonService):
                 origin_prompt=node['inputs']['text']
                 if 'bad' in origin_prompt or 'worst' in origin_prompt:#说明是负面提示词，不用更改
                     continue
-                enhanced_prompt = f"{prompt}, {style}, masterpiece, best quality, 8K, HDR, highres"
+                enhanced_prompt = f"({style}:1.2),{prompt},  masterpiece, best quality, 8K, HDR, highres"
                 node['inputs']['text'] = enhanced_prompt
         return workflow
         
@@ -251,71 +251,6 @@ class ImageService(SingletonService):
         except Exception as e:
             return False, None
             
-    def generate_image(self, prompt: str, workflow_name: Optional[str], output_path: str,
-                      seed: Optional[int] = None, params: Optional[Dict[str, Any]] = None) -> bool:
-        """生成单张图片。"""
-        try:
-            # 加载工作流
-            workflow = self._load_workflow(workflow_name)
-            if not workflow:
-                return False
-                
-            # 更新工作流参数
-            workflow = self._update_workflow_prompt(workflow, prompt,params['style'])
-            
-            # 强制设置随机种子
-            if seed is None:
-                seed = self.generate_seed()
-            print(f"Using seed: {seed}")
-            workflow = self._update_workflow_seed(workflow, seed)
-            
-            if params is None:
-                params = {}
-            params['seed'] = seed
-            workflow = self._update_workflow_params(workflow, params)
-            
-            # 连接 WebSocket
-            self._connect_websocket()
-            
-            # 发送工作流到 ComfyUI
-            prompt_id = self._send_workflow(workflow)
-            
-            # 等待执行完成
-            success, history = self._wait_for_execution(prompt_id)
-            if not success:
-                print(f"Failed to generate image: {history}")
-                return False
-                
-            # 下载生成的图片
-            image_url = f"{self.comfyui_url}/view"
-            params = {
-                'filename': history['outputs'][0]['images'][0]['filename'],
-                'subfolder': '',
-                'type': 'output'
-            }
-            image_response = requests.get(image_url, params=params)
-            if image_response.status_code != 200:
-                print(f"Failed to download image: {image_response.status_code}")
-                return False
-                
-            # 保存图片
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            with open(output_path, 'wb') as f:
-                f.write(image_response.content)
-            print(f"Saved generated image to {output_path}")
-            return True
-            
-        except Exception as e:
-            print(f"Error generating image: {str(e)}")
-            return False
-            
-        finally:
-            if self._ws:
-                self._ws.close()
-                self._ws = None
-                self._ws_messages = []
-                self._ws_connected = False
-                self._ws_error = None
             
     def generate_images(
         self,
