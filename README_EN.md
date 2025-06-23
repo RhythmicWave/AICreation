@@ -134,6 +134,7 @@ c) Audio Generation:
 ### 6. Video Generation
 ![Video Generation](docs/image6.png)
 - Switch to video generation interface
+- When setting the horizontal pan range or vertical pan range, the width or height of the video resolution can be automatically adjusted. However, automatic adjustment is not possible when both the horizontal and vertical pan ranges are set simultaneously.
 - Click "Generate Video" (takes about 1 minute)
 
 #### Video Hardware Encoding Configuration (Optional)

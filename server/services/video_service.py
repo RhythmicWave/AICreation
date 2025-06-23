@@ -70,7 +70,8 @@ class VideoService:
         with Image.open(image_path) as img:
             if img.mode != 'RGB':
                 img = img.convert('RGB')
-            image = img.resize(resolution, Image.LANCZOS)
+            image=img.copy()
+            # image = img.resize(resolution, Image.LANCZOS)
 
         # 加载音频
         audio = AudioFileClip(audio_path)

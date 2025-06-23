@@ -45,29 +45,27 @@ class ImageEffects:
         
         # 确定当前片段移动方向
         use_horizontal = True
-        use_vertical = False
         
         # 根据横纵向参数决定移动方式
         if h_range > 0 and v_range > 0:
             # 两个参数都不为0，则交替使用
             if segment_index % 2 == 0:
                 use_horizontal = True
-                use_vertical = False
+
             else:
                 use_horizontal = False
-                use_vertical = True
+
         elif h_range > 0:
             # 只有水平参数不为0，则全部使用水平移动
             use_horizontal = True
-            use_vertical = False
+
         elif v_range > 0:
             # 只有垂直参数不为0，则全部使用垂直移动
             use_horizontal = False
-            use_vertical = True
         else:
             # 如果两个都为0，默认使用水平移动
             use_horizontal = True
-            use_vertical = False
+
         
         # 计算原始图像的宽高比
         aspect_ratio = image.width / image.height
