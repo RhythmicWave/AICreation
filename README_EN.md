@@ -27,10 +27,9 @@ System Architecture:
 - Audio Generation: Integrated with EdgeTTS
 - Content Management: File system-based structured storage
 
-### Demo Video
+### Output Video Display
 
-
-https://github.com/user-attachments/assets/9f0df91a-70b7-4239-8916-96c2f768ee6d
+https://github.com/user-attachments/assets/e1e3b0ea-6d67-473f-ae30-1f87ef883f8b
 
 
 ## Installation
