@@ -75,17 +75,24 @@ class VideoService:
 
         # 加载音频
         audio = AudioFileClip(audio_path)
+        if audio.duration is None or audio.duration < 0.05:
+            audio.close()  # 释放文件句柄
+            raise ValueError(f"音频文件时长过短或无效: {audio_path}")
+            
         return image, audio
 
     async def _process_segment(self, subdir: str, temp_dir: str, settings: Dict) -> Optional[Tuple[str, str]]:
         """处理单个视频片段"""
+        # 增加subdir，进一步确保唯一性
         temp_file = os.path.join(temp_dir, f"vid_{subdir}_{os.getpid()}.mp4")
         temp_audio_path = os.path.join(
             os.path.dirname(temp_file), 
-            f"temp_audio_{os.getpid()}_{time.time_ns()}.m4a"
+            f"temp_audio_{subdir}_{os.getpid()}_{time.time_ns()}.m4a"
         )
         start_time = time.time()
         frames = []
+        image = None
+        audio = None
 
         try:
             # 在线程中加载资源
@@ -97,6 +104,8 @@ class VideoService:
             
             duration = audio.duration
             total_frames = int(duration * settings['fps'])
+            if total_frames == 0:
+                raise ValueError(f"计算的总帧数为0，视频时长过短。 Subdir: {subdir}")
 
             # 批量生成帧
             for i in range(total_frames):
@@ -125,17 +134,11 @@ class VideoService:
                 
             return temp_file, temp_audio_path
 
-        except Exception as e:
-            logger.error("处理失败 [%s]: %s", subdir, str(e))
-            # On failure, attempt to clean up the files this segment created
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, self._cleanup_temp_files, [temp_file, temp_audio_path])
-            return None
         finally:
-            # 释放资源
-            if 'image' in locals():
+            # 只释放内存资源，不再处理文件删除
+            if image:
                 image.close()
-            if 'audio' in locals():
+            if audio:
                 audio.close()
             del frames
             gc.collect()
@@ -146,21 +149,12 @@ class VideoService:
         使用临时文件来暂存，避免内存占用过高
         """
         with ImageSequenceClip(frames, fps=settings['fps']) as video_clip:
-            # 确保音频时长与视频对齐
-            if audio.duration > video_clip.duration:
-                audio = audio.subclipped(0, video_clip.duration)
-            elif audio.duration < video_clip.duration:
-                # 若音频短于视频，则静音填充
-                from numpy import zeros
-                silence = AudioArrayClip(
-                    zeros((1, int(audio.fps * (video_clip.duration - audio.duration)))), 
-                    fps=audio.fps
-                )
-                silence = silence.with_start(audio.duration)
-                audio = CompositeAudioClip([audio, silence])
+            # 使用 .with_duration() 来精确、安全地对齐音视频时长
+            # 这会优雅地处理时长不匹配问题，无论是填充静音还是截断
+            final_audio = audio.with_duration(video_clip.duration)
 
             # 绑定音频
-            final_clip = video_clip.with_audio(audio)
+            final_clip = video_clip.with_audio(final_audio)
 
             # 设置编码参数
             ffmpeg_params = []
@@ -215,22 +209,27 @@ class VideoService:
                 batch = subdirs[i:i+batch_size]
                 tasks = [self._process_segment(subdir, chapter_path, final_settings) for subdir in batch]
                 
-                # 等待当前批次完成
-                batch_results = await asyncio.gather(*tasks)
+                # 等待当前批次完成，即使有异常也继续
+                batch_results = await asyncio.gather(*tasks, return_exceptions=True)
                 
-                # 收集结果
+                # 收集结果并处理异常
                 for result in batch_results:
-                    if result:
+                    if isinstance(result, Exception):
+                        logger.error("一个视频片段处理失败: %s", result)
+                    elif result:
                         video_path, audio_path = result
                         temp_video_files.append(video_path)
                         all_temp_files.extend([video_path, audio_path])
                 
                 # 检查是否取消
                 if self.stop_flag.is_set():
-                    loop = asyncio.get_running_loop()
-                    await loop.run_in_executor(None, self._cleanup_temp_files, all_temp_files)
+                    # 在finally中统一处理清理
                     logger.info("视频生成被用户取消")
                     raise ValueError("视频生成被用户取消")
+
+            # 检查是否有任何片段失败
+            if len(temp_video_files) != len(subdirs):
+                 raise ValueError("部分视频片段生成失败，无法合并。请检查日志。")
                         
             # 合并临时文件
             if not temp_video_files:
@@ -266,6 +265,10 @@ class VideoService:
     def _merge_videos(self, temp_files: List[str], output_path: str, settings: Dict) -> str:
         """合并视频片段"""
         concat_list = os.path.join(os.path.dirname(output_path), "concat.txt")
+        # 写入到一个临时文件，避免在合并过程中被读取
+        # 通过在扩展名前插入标记来创建临时文件名，保留原始扩展名
+        root, ext = os.path.splitext(output_path)
+        temp_output_path = f"{root}.tmp_{os.getpid()}{ext}"
        
         try:
             # 生成合并列表
@@ -282,13 +285,17 @@ class VideoService:
                 '-i', concat_list,
                 '-c', 'copy',
                 '-movflags', '+faststart',
-                '-y', output_path
+                '-y', temp_output_path
             ]
             if settings.get('use_cuda', False) and self.cuda_available:
                 cmd[1:1] = ['-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda']
       
             # 执行命令
             subprocess.run(cmd, check=True, capture_output=True)
+            
+            # 原子化地替换/重命名文件
+            os.replace(temp_output_path, output_path)
+
             logger.info("视频合并成功: %s", output_path)
             return output_path
             
@@ -300,8 +307,11 @@ class VideoService:
             logger.error("合并失败: %s", error_msg)
             raise
         finally:
+            # 确保所有临时文件都被清理
             if os.path.exists(concat_list):
                 os.remove(concat_list)
+            if os.path.exists(temp_output_path):
+                os.remove(temp_output_path)
 
     def _apply_effects(self, image: Image.Image, time_val: float, 
                       duration: float, settings: Dict, subdir: str) -> Image.Image:
