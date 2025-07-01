@@ -27,10 +27,9 @@
 - 音频生成： 集成EdgeTTS
 - 内容管理：基于文件系统的结构化存储
 
-### 演示视频
+### 输出视频展示
 
-
-https://github.com/user-attachments/assets/9f0df91a-70b7-4239-8916-96c2f768ee6d
+https://github.com/user-attachments/assets/26486c15-b3d5-4510-bc2a-cb0d0b437463
 
 
 ## 安装说明
