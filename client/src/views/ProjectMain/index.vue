@@ -16,13 +16,13 @@
             </el-icon>
             <span>{{ t('projectMain.textCreation') }}</span>
           </el-menu-item>
-          <el-menu-item :index="`/project/${projectName}/character-library`">
+          <el-menu-item :index="`/project/${projectName}/library/character`">
             <el-icon>
               <User />
             </el-icon>
             <span>{{ t('projectMain.characterLibrary') }}</span>
           </el-menu-item>
-          <el-menu-item :index="`/project/${projectName}/scene-library`">
+          <el-menu-item :index="`/project/${projectName}/library/scene`">
             <el-icon>
               <OfficeBuilding />
             </el-icon>

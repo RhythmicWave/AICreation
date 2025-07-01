@@ -32,6 +32,40 @@ export default {
     title: '404',
     subTitle: '抱歉，您访问的页面不存在'
   },
+  promptStyler: {
+    title: '画风管理',
+    addStyle: '新增画风',
+    searchPlaceholder: '搜索画风...',
+    emptyDescription: '没有找到画风',
+    positivePrompt: '正向提示',
+    negativePrompt: '反向提示',
+    editStyle: '编辑样式',
+    addStyleTitle: '新增样式',
+    editStyleTitle: '编辑样式',
+    englishName: '英文名称',
+    chineseName: '中文名称',
+    englishNamePlaceholder: '请输入样式英文名称',
+    chineseNamePlaceholder: '请输入样式中文名称',
+    positivePromptPlaceholder: "请输入正向提示词，使用 {prompt} 作为替换位置",
+    negativePromptPlaceholder: '请输入反向提示词（可选）',
+    nameRequired: '请输入样式英文名称',
+    nameLength: '长度应为2到50个字符',
+    chineseNameRequired: '请输入样式中文名称',
+    chineseNameLength: '长度应为1到50个字符',
+    promptRequired: '请输入正向提示词',
+    saveButton: '保存',
+    cancelButton: '取消',
+    editButton: '编辑',
+    deleteButton: '删除',
+    deleteConfirmTitle: '删除确认',
+    deleteConfirmContent: '确定要删除这个样式吗？此操作不可恢复。',
+    updateSuccess: '样式更新成功',
+    addSuccess: '样式添加成功',
+    deleteSuccess: '样式删除成功',
+    saveFailed: '保存失败',
+    fetchFailed: '获取样式列表失败',
+    networkError: '网络连接错误'
+  },
   setting: {
     title: '系统配置',
     save: '保存配置',
@@ -40,14 +74,18 @@ export default {
     loadError: '获取配置失败',
     comfyui: {
       apiUrl: 'ComfyUI API地址',
-      apiUrlPlaceholder: '请输入ComfyUI API地址'
+      apiUrlPlaceholder: '请输入ComfyUI API地址',
+      referenceImageMode: '参考图像模式'
     },
     defaultWorkflow: {
       name: '默认工作流',
       namePlaceholder: '请选择默认工作流'
     },
     llm: {
+      llm_b_title: 'LLM B 配置',
       title: 'LLM 配置',
+      apiKey: 'API Key',
+      apiKeyPlaceholder: '请输入API Key',
       apiUrl: 'API URL',
       apiUrlPlaceholder: '请输入API URL',
       modelName: '模型名称',
@@ -109,9 +147,6 @@ export default {
     chapterList: '章节列表',
     convertSelectedPrompts: '转换选中提示词',
     saveAll: '保存所有修改',
-    styleRealism: '写实',
-    styleAnime: '动漫',
-    styleScenery: '风景',
     generateSelectedImages: '生成选中图片',
     generateSelectedAudio: '生成选中音频',
     noSelection: '请先选择要处理的项目',
@@ -173,7 +208,9 @@ export default {
     create: '创建',
     nameRequired: '名称不能为空',
     createSuccess: '创建成功',
-    createError: '创建失败'
+    createError: '创建失败',
+    referenceImage: '参考图片',
+    generateImage: '生成图片'
   },
   menu: {
     characterLibrary: '角色库',
@@ -212,6 +249,8 @@ export default {
     generationComplete: '视频生成完成',
     generationCancelled: '视频生成已取消',
     cancelFailed: '取消失败',
-    generatingVideo: '正在生成视频'
+    generatingVideo: '正在生成视频',
+    calculateRecommended: '计算推荐分辨率',
+    resolutionUpdated: '分辨率已更新'
   }
 }

@@ -10,6 +10,7 @@ from server.config.config import load_config
 from server.services.video_service import VideoService
 from server.utils.response import make_response, APIException
 import logging
+from PIL import Image
 
 router = APIRouter(prefix='/video')
 logger = logging.getLogger(__name__)

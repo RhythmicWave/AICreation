@@ -83,9 +83,6 @@ export default {
     chapterList: 'Chapter List',
     convertSelectedPrompts: 'Convert Selected Prompts',
     saveAll: 'Save All',
-    styleRealism: 'Realism',
-    styleAnime: 'Anime',
-    styleScenery: 'Scenery',
     generateSelectedImages: 'Generate Selected Images',
     generateSelectedAudio: 'Generate Selected Audio',
     noSelection: 'Please select items to process',
@@ -102,14 +99,18 @@ export default {
     loadError: 'Failed to load configuration',
     comfyui: {
       apiUrl: 'ComfyUI API URL',
-      apiUrlPlaceholder: 'Please enter ComfyUI API URL'
+      apiUrlPlaceholder: 'Please enter ComfyUI API URL',
+      referenceImageMode: 'Reference Image Mode'
     },
     defaultWorkflow: {
       name: 'Default Workflow',
       namePlaceholder: 'Please select default workflow'
     },
     llm: {
+      llm_b_title: 'LLM B Configuration',
       title: 'LLM Configuration',
+      apiKey: 'API Key',
+      apiKeyPlaceholder: 'Please enter API Key',
       apiUrl: 'API URL',
       apiUrlPlaceholder: 'Please enter API URL',
       modelName: 'Model Name',
@@ -132,6 +133,40 @@ export default {
     sceneLibrary: 'Scene Library',
     storyboardProcess: 'Storyboard Process',
     videoOutput: 'Video Output'
+  },
+  promptStyler: {
+    title: 'Style Management',
+    addStyle: 'Add Style',
+    searchPlaceholder: 'Search styles...',
+    emptyDescription: 'No styles found',
+    positivePrompt: 'Positive Prompt',
+    negativePrompt: 'Negative Prompt',
+    editStyle: 'Edit Style',
+    addStyleTitle: 'Add New Style',
+    editStyleTitle: 'Edit Style',
+    englishName: 'English Name',
+    chineseName: 'Chinese Name',
+    englishNamePlaceholder: 'Please enter style English name',
+    chineseNamePlaceholder: 'Please enter style Chinese name',
+    positivePromptPlaceholder: 'Please enter positive prompt, use {prompt} as replacement',
+    negativePromptPlaceholder: 'Please enter negative prompt (optional)',
+    nameRequired: 'Style English name is required',
+    nameLength: 'Length should be between 2-50 characters',
+    chineseNameRequired: 'Style Chinese name is required',
+    chineseNameLength: 'Length should be between 1-50 characters',
+    promptRequired: 'Positive prompt is required',
+    saveButton: 'Save',
+    cancelButton: 'Cancel',
+    editButton: 'Edit',
+    deleteButton: 'Delete',
+    deleteConfirmTitle: 'Delete Confirmation',
+    deleteConfirmContent: 'Are you sure you want to delete this style? This action cannot be undone.',
+    updateSuccess: 'Style updated successfully',
+    addSuccess: 'Style added successfully',
+    deleteSuccess: 'Style deleted successfully',
+    saveFailed: 'Failed to save',
+    fetchFailed: 'Failed to fetch style list',
+    networkError: 'Network connection error'
   },
   textCreation: {
     splitChapter: 'Split Current Chapter',
@@ -179,7 +214,9 @@ export default {
     create: 'Create',
     nameRequired: 'Name is required',
     createSuccess: 'Created successfully',
-    createError: 'Failed to create'
+    createError: 'Failed to create',
+    referenceImage: 'Reference Image',
+    generateImage: 'Generate Image'
   },
   success: {
     saved: 'Saved successfully',
@@ -220,5 +257,8 @@ export default {
     cancelFailed: 'Cancel Failed',
     generatingVideo: 'Generating Video',
     progressTrackingFailed: 'Progress Tracking Failed',
-  }
+    calculateRecommended: 'Calculate Recommend Resolution',
+    resolutionUpdated: 'Resolution Updated'
+  },
+
 }

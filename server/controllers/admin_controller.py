@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from server.config.config import load_config, update_config
+from server.config.config import load_config, update_config,load_prompt_styler,save_prompt_styler
+import os
+import json
 from server.utils.response import make_response
 
 router = APIRouter(prefix='/admin')
+config = load_config()
 
 @router.get('/config')
 async def get_config():
@@ -36,3 +39,34 @@ async def update_configuration(request: Request):
         )
     except Exception as e:
         return make_response(status='error', msg=f'更新配置时发生错误：{str(e)}')
+
+@router.get('/prompt_styles')
+async def get_prompt_styles():
+    """获取所有提示词样式。"""
+    try:
+
+        styles=load_prompt_styler()
+        
+        return make_response(
+            data={'styles': styles},
+            msg='获取提示词样式成功'
+        )
+    except Exception as e:
+        return make_response(status='error', msg=f'获取提示词样式时发生错误：{str(e)}')
+
+@router.post('/prompt_styles')
+async def save_prompt_styles(request: Request):
+    """保存提示词样式。"""
+    try:
+        data = await request.json()
+        styles = data.get('styles')
+        
+        if not styles:
+            return make_response(status='error', msg='缺少样式数据')
+            
+        # 保存到prompt_styler.json文件
+        save_prompt_styler(styles)
+            
+        return make_response(data=True,msg='保存提示词样式成功')
+    except Exception as e:
+        return make_response(status='error', msg=f'保存提示词样式时发生错误：{str(e)}')

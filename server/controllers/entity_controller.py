@@ -2,9 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Query
 import json
 import os
 import logging
+import shutil
+from pathlib import Path
 from server.services.kg_service import KGService
 from server.services.scene_service import SceneService
 from server.utils.response import make_response
+from server.config.config import load_config
 
 router = APIRouter(prefix='/entity')
 kg_service = KGService()
@@ -84,6 +87,18 @@ async def delete_character(name: str, project_name: str = Query(..., description
         # 删除实体，并自动保存
         result = kg_service.delete_entity(project_name, name, save_kg=True)
         
+        # 删除对应的参考图文件夹
+        try:
+            config = load_config()
+            projects_path = config.get('projects_path', 'projects')
+            character_folder = Path(projects_path) / project_name / "Character" / name
+            if character_folder.exists() and character_folder.is_dir():
+                shutil.rmtree(character_folder)
+                logging.info(f"成功删除角色文件夹: {character_folder}")
+        except Exception as folder_e:
+            # 即使文件夹删除失败，也只记录日志，不影响主流程
+            logging.error(f"删除角色参考图文件夹 {name} 时失败: {folder_e}")
+        
         # 检查删除结果
         if '成功' in result:
             return make_response(data=True)
@@ -149,6 +164,18 @@ async def delete_scene(name: str, project_name: str = Query(..., description="�
        
         result = scene_service.delete_scenes(project_name, [name])
         
+        # 删除对应的参考图文件夹
+        try:
+            config = load_config()
+            projects_path = config.get('projects_path', 'projects')
+            scene_folder = Path(projects_path) / project_name / "Scene" / name
+            if scene_folder.exists() and scene_folder.is_dir():
+                shutil.rmtree(scene_folder)
+                logging.info(f"成功删除场景文件夹: {scene_folder}")
+        except Exception as folder_e:
+            # 即使文件夹删除失败，也只记录日志，不影响主流程
+            logging.error(f"删除场景参考图文件夹 {name} 时失败: {folder_e}")
+
         # 检查删除结果
         if result:
             return make_response(data=result)

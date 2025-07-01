@@ -7,6 +7,7 @@ import './style.css'
 import App from './App.vue'
 import router from './router'
 import i18n from './locales'
+import pinia from './store'
 
 const app = createApp(App)
 
@@ -18,5 +19,6 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 app.use(router)
 app.use(ElementPlus)
 app.use(i18n)
+app.use(pinia)
 
 app.mount('#app')

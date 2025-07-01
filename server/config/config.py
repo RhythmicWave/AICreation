@@ -1,3 +1,4 @@
+import json
 import os
 import yaml
 from typing import Dict, Any
@@ -73,3 +74,22 @@ def update_config(updates: Dict[str, Any]) -> Dict[str, Any]:
     # 保存并重新加载配置
     save_config(filtered_config)
     return config
+
+def load_prompt_styler():
+    prompt_styler_path=os.path.join(os.path.dirname(__file__), 'prompt_styler.json')
+    with open(prompt_styler_path, 'r', encoding='utf-8') as f:
+        styles = json.load(f)
+    return styles
+
+def save_prompt_styler(styles):
+    prompt_styler_path=os.path.join(os.path.dirname(__file__), 'prompt_styler.json')
+    with open(prompt_styler_path, 'w', encoding='utf-8') as f:
+        json.dump(styles, f, ensure_ascii=False, indent=4)
+
+def get_prompt_style_by_name(style_name: str) -> Dict[str, Any] | None:
+    """根据名称查找提示词样式"""
+    styles = load_prompt_styler()
+    for style in styles:
+        if style.get('name') == style_name:
+            return style
+    return None

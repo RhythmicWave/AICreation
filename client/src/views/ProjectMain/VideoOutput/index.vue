@@ -41,7 +41,6 @@
               :min="0" 
               :max="1" 
               :step="0.1" 
-              @vue:updated="calculateAdjustedResolution"
             />
           </el-form-item>
           
@@ -51,7 +50,6 @@
               :min="0" 
               :max="1" 
               :step="0.1" 
-              @vue:updated="calculateAdjustedResolution"
             />
           </el-form-item>
         </template>
@@ -64,48 +62,46 @@
             :max="60"
           />
         </el-form-item>
-
-        <!-- 分辨率设置 -->
+        
+        <!-- 源图片分辨率 -->
         <el-form-item :label="t('videoOutput.imageResolution')">
           <el-input-number 
             v-model="imageResolution[0]" 
-            :min="480" 
-            :max="3840"
+            :min="100" 
+            :max="4000"
             :step="16"
             :placeholder="t('videoOutput.imageWidth')"
             style="margin-right: 10px"
           />
           <el-input-number 
             v-model="imageResolution[1]" 
-            :min="360" 
-            :max="2160"
+            :min="100" 
+            :max="4000"
             :step="16"
             :placeholder="t('videoOutput.imageHeight')"
           />
         </el-form-item>
+
+        <!-- 分辨率设置 -->
         <el-form-item :label="t('videoOutput.resolution')">
           <el-input-number 
             v-model="videoSettings.resolution[0]" 
-            :min="480" 
-            :max="3840"
+            :min="100" 
+            :max="4000"
             :step="16"
             :placeholder="t('videoOutput.width')"
             style="margin-right: 10px"
-            @change="calculateAdjustedResolution"
-            :disabled="width_lock"
           />
           <el-input-number 
             v-model="videoSettings.resolution[1]" 
-            :min="360" 
-            :max="2160"
+            :min="100" 
+            :max="4000"
             :step="16"
             :placeholder="t('videoOutput.height')"
-            @change="calculateAdjustedResolution"
-            :disabled="height_lock"
           />
-        </el-form-item>
-        <el-form-item :label="t('videoOutput.autoAdjustResolution')">
-          <el-switch v-model="autoAdjustResolution" @change="handleAutoAdjustChange"/>
+          <el-button @click="calculateRecommendedResolution" class="calc-btn">
+            {{ t('videoOutput.calculateRecommended') }}
+          </el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -174,6 +170,7 @@ const { t } = useI18n()
 // 章节相关
 const chapters = ref<string[]>([])
 const selectedChapter = ref('')
+const imageResolution = ref<[number, number]>([512, 768])
 
 // 视频设置
 const videoSettings = ref<VideoSettings>({
@@ -181,12 +178,10 @@ const videoSettings = ref<VideoSettings>({
   chapter_name:'',
   fade_duration:1,
   use_pan: true,
-  pan_range: [0.5, 0],
+  pan_range: [0.3, 0],
   fps: 20,
   resolution:[768,768]
 })
-
-const imageResolution=ref([768,768])
 
 // 状态管理
 const isGenerating = ref(false)
@@ -301,7 +296,7 @@ const fetchChapters = async () => {
 
     if (chapters.value.length > 0) {
       selectedChapter.value = chapters.value[0]
-      videoUrl.value = getResourcePath(projectName, selectedChapter.value, 0, 'video')
+      videoUrl.value = getResourcePath(projectName, selectedChapter.value, '0', 'video')
     }
     
   } catch (error) {
@@ -311,61 +306,29 @@ const fetchChapters = async () => {
 
 // 章节变更处理
 const handleChapterChange = () => {
-  videoUrl.value = getResourcePath(projectName, selectedChapter.value, 0, 'video')
+  videoUrl.value = getResourcePath(projectName, selectedChapter.value, '0', 'video')
 }
 
-const autoAdjustResolution = ref(true)
+// 计算推荐分辨率
+const calculateRecommendedResolution = () => {
+  const [imgW, imgH] = imageResolution.value
+  const [panX, panY] = videoSettings.value.pan_range
+  const [outW, outH] = videoSettings.value.resolution
 
-const width_lock=ref(false)
-const height_lock=ref(false)
+  const roundToMultipleOf4 = (value: number) => Math.round(value / 4) * 4;
 
-const handleAutoAdjustChange = () => {
-  if (autoAdjustResolution.value) {
-    // 重新计算分辨率
-    calculateAdjustedResolution()
-  }else{
-    width_lock.value=false
-    height_lock.value=false
-  }
-}
-
-// 计算平移效果所需的分辨率
-const calculateAdjustedResolution = () => {
-  const [h_range, v_range] = videoSettings.value.pan_range
-
-
-  if(!videoSettings.value.use_pan || (h_range>0&&v_range>0)){
-    autoAdjustResolution.value=false
-    width_lock.value=false
-    height_lock.value=false
-  }
-
-  if (!autoAdjustResolution.value || !videoSettings.value.use_pan) return
-
-  
-  const [imgWidth, imgHeight] = imageResolution.value
-  const aspectRatio = imgWidth / imgHeight
-  
-  
-  let [out_width,out_height]=videoSettings.value.resolution
-
-  if(h_range>0){
-    let new_width=out_height*aspectRatio
-    out_width=Math.round(new_width/(1+h_range))
-    width_lock.value=true
-  }else{
-    width_lock.value=false
-  }
-
-  if(v_range>0){
-    let new_height=out_width/aspectRatio
-    out_height=Math.round(new_height/(1+v_range))
-    height_lock.value=true
-  }else{
-    height_lock.value=false
+  if (panX > 0) {
+    const recommendedW = roundToMultipleOf4((outH * (imgW / imgH)) / (1 + panX));
+    videoSettings.value.resolution[0] = recommendedW;
+  } else if (panY > 0) {
+    const recommendedH = roundToMultipleOf4((outW * (imgH / imgW)) / (1 + panY));
+    videoSettings.value.resolution[1] = recommendedH;
+  } else {
+    const recommendedW = roundToMultipleOf4(outH * (imgW / imgH));
+    videoSettings.value.resolution[0] = recommendedW;
   }
   
-  videoSettings.value.resolution = [out_width, out_height]
+  ElMessage.success(t('videoOutput.resolutionUpdated'))
 }
 
 // 组件卸载前清理定时器
@@ -433,5 +396,9 @@ onMounted(() => {
   margin: 16px 0;
   display: flex;
   gap: 10px;
+}
+
+.calc-btn {
+  margin-left: 10px;
 }
 </style>

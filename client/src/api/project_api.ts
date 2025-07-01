@@ -32,15 +32,5 @@ export default {
         return request.get<ProjectInfo>('/project/info', { 
             project_name: projectName 
         })
-    },
-
-    // 获取配置信息
-    getConfig() {
-        return request.get('/admin/config')
-    },
-
-    // 更新配置信息
-    updateConfig(config: Record<string, any>) {
-        return request.post('/admin/config', config)
     }
 }

@@ -154,10 +154,14 @@ async def split_text(request: Request):
         spans_and_prompts =await llm_service.split_text_and_generate_prompts(project_name, content)
         
         # 检查是否有错误
-        if spans_and_prompts and all('error' in span for span in spans_and_prompts):
+        if not spans_and_prompts:
+             return make_response(status='error', msg='文本分割失败，请重试。')
+
+        if all('error' in span for span in spans_and_prompts):
             return make_response(status='error', msg='文本分割失败', detail=spans_and_prompts)
 
-
+        print("切割数量",len(spans_and_prompts))
+        print("spans_and_prompts",spans_and_prompts)
         # 生成对应的文件
         chapter_file_server.generate_span_files(project_name, chapter_name, spans_and_prompts)
             

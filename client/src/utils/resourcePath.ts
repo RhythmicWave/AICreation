@@ -11,7 +11,7 @@ import config from '@/config'
 export const getResourcePath = (
   projectName: string,
   chapterName: string,
-  spanId?: number,
+  spanId?: string,
   type: 'image' | 'audio' |'video'= 'image'
 ): string => {
   const timestamp = Date.now()

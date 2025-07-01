@@ -33,82 +33,76 @@ class ImageEffects:
 
     @staticmethod
     def pan_effect(image: Image.Image, time_val: float, duration: float, params: Dict) -> Image.Image:
-        """平滑的平移效果
-        支持横向和纵向移动，可交替使用
+        """
+        平滑的平移和缩放效果，可防止图像拉伸。
+        通过正确计算缩放比例来确保图像在适应平移范围的同时保持其原始宽高比。
         """
         output_w, output_h = params['output_size']
-        pan_range = params.get('pan_range', (0.3, 0))  # (水平范围, 垂直范围)
-        
-        # 获取当前片段的移动方向
+        pan_range = params.get('pan_range', (0.3, 0))
         segment_index = params.get('segment_index', 0)
         h_range, v_range = pan_range
-        
-        # 确定当前片段移动方向
+
+        # 确定移动方向
         use_horizontal = True
-        
-        # 根据横纵向参数决定移动方式
         if h_range > 0 and v_range > 0:
-            # 两个参数都不为0，则交替使用
-            if segment_index % 2 == 0:
-                use_horizontal = True
-
-            else:
-                use_horizontal = False
-
-        elif h_range > 0:
-            # 只有水平参数不为0，则全部使用水平移动
-            use_horizontal = True
-
+            use_horizontal = segment_index % 2 == 0
         elif v_range > 0:
-            # 只有垂直参数不为0，则全部使用垂直移动
             use_horizontal = False
-        else:
-            # 如果两个都为0，默认使用水平移动
-            use_horizontal = True
-
         
-        # 计算原始图像的宽高比
-        aspect_ratio = image.width / image.height
-        
-        # 根据移动方向缩放图片
-        if use_horizontal:
-            # 横向移动：确保高度完全匹配输出高度
-            new_height = output_h
-            # 保持宽高比，并确保宽度有足够的移动空间
-            new_width = max(int(new_height * aspect_ratio), int(output_w * (1 + h_range)))
-        else:
-            # 纵向移动：确保宽度完全匹配输出宽度
-            new_width = output_w
-            # 保持宽高比，并确保高度有足够的移动空间
-            new_height = max(int(new_width / aspect_ratio), int(output_h * (1 + v_range)))
+        # 如果没有平移，直接将图片居中裁剪
+        if h_range <= 0 and v_range <= 0:
+            img_aspect = image.width / image.height
+            out_aspect = output_w / output_h
             
-        # 应用缩放
-        scaled_img = image.resize((new_width, new_height), Image.BICUBIC)
+            if img_aspect > out_aspect:
+                new_height = output_h
+                new_width = int(new_height * img_aspect)
+                scaled_img = image.resize((new_width, new_height), Image.LANCZOS)
+                left = (new_width - output_w) // 2
+                return scaled_img.crop((left, 0, left + output_w, output_h))
+            else:
+                new_width = output_w
+                new_height = int(new_width / img_aspect)
+                scaled_img = image.resize((new_width, new_height), Image.LANCZOS)
+                top = (new_height - output_h) // 2
+                return scaled_img.crop((0, top, output_w, top + output_h))
+
+        # 计算缩放比例，保持宽高比
+        img_w, img_h = image.width, image.height
         
-        # 使用缓动函数计算移动进度，使动画更平滑
+        if use_horizontal:
+            # 为横向平移计算缩放比例
+            required_width = output_w * (1 + h_range)
+            ratio_w = required_width / img_w
+            ratio_h = output_h / img_h
+            scale_ratio = max(ratio_w, ratio_h)
+        else:  # Vertical pan
+            required_height = output_h * (1 + v_range)
+            ratio_h = required_height / img_h
+            ratio_w = output_w / img_w
+            scale_ratio = max(ratio_w, ratio_h)
+            
+        new_width = int(img_w * scale_ratio)
+        new_height = int(img_h * scale_ratio)
+        
+        scaled_img = image.resize((new_width, new_height), Image.LANCZOS)
+        
+        # 使用缓动函数计算移动进度
         progress = ImageEffects._ease_in_out_progress(time_val / duration)
         
-        # 计算裁剪位置
-        x_offset = 0
-        y_offset = 0
-        
+        # 计算裁剪框位置
         if use_horizontal:
-            # 横向移动：从左到右
             max_x_offset = scaled_img.width - output_w
             x_offset = int(max_x_offset * progress)
-            # 高度应该精确匹配输出高度，无需额外裁剪
-        else:
-            # 纵向移动：从上到下
+            y_offset = (scaled_img.height - output_h) // 2
+        else:  # Vertical pan
             max_y_offset = scaled_img.height - output_h
             y_offset = int(max_y_offset * progress)
-            # 宽度应该精确匹配输出宽度，无需额外裁剪
+            x_offset = (scaled_img.width - output_w) // 2
         
-        # 安全裁剪
         return scaled_img.crop((
-            x_offset, 
-            y_offset,
-            x_offset + output_w,
-            y_offset + output_h
+            x_offset, y_offset,
+            x_offset + output_w, y_offset + output_h
         ))
 
     @staticmethod

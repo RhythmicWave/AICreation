@@ -30,6 +30,9 @@
                             </template>
                         </el-input>
                     </el-form-item>
+                    <el-form-item :label="t('setting.comfyui.referenceImageMode')" prop="comfyui.reference_image_mode">
+                        <el-switch v-model="configForm.comfyui.reference_image_mode" />
+                    </el-form-item>
                 </div>
 
                 <!-- 默认工作流配置 -->
@@ -98,6 +101,7 @@
                     </el-form-item>
                 </div>
 
+
                 <!-- 路径配置 -->
                 <div class="setting-section">
                     <h3 class="section-title">{{ t('setting.path.title') }}</h3>
@@ -145,7 +149,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { Check, Link, Monitor, Folder,Key } from '@element-plus/icons-vue'
-import projectApi from '@/api/project_api'
+import adminApi from '@/api/admin_api'
 
 const { t } = useI18n()
 const loading = ref(false)
@@ -153,7 +157,8 @@ const saving = ref(false)
 const allWorkflows = ref<string[]>([])
 const configForm = ref({
     comfyui: {
-        api_url: ''
+        api_url: '',
+        reference_image_mode: true
     },
     default_workflow: {
         name: ''
@@ -173,7 +178,8 @@ const configForm = ref({
 const fetchConfig = async () => {
     loading.value = true
     try {
-        const data  = await projectApi.getConfig()
+        const data  = await adminApi.getConfig()
+        console.log(data)
         // 保存工作流列表
         allWorkflows.value = data.all_workflow || []
         // 更新配置表单
@@ -197,7 +203,7 @@ const fetchConfig = async () => {
 const handleSave = async () => {
     saving.value = true
     try {
-        await projectApi.updateConfig(configForm.value)
+        await adminApi.updateConfig(configForm.value)
         ElMessage.success(t('setting.saveSuccess'))
     } catch (error) {
         ElMessage.error(t('setting.saveError'))

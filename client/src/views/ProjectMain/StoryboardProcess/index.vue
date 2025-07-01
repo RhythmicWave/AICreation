@@ -24,35 +24,7 @@
         <!-- 第二排：图像设置 -->
         <el-row :gutter="24" class="settings-row">
           <el-col :span="24">
-            <div class="settings-group">
-              <div class="settings-title">{{ t('storyboardProcess.imageSettings') }}</div>
-              <el-row :gutter="12">
-                <el-col :span="8">
-                  <div class="input-with-label">
-                    <span class="input-label">{{ t('storyboardProcess.imageWidth') }}</span>
-                    <el-input-number v-model="imageSettings.width" :min="64" :max="2048" :step="64"
-                                     controls-position="right" />
-                  </div>
-                </el-col>
-                <el-col :span="8">
-                  <div class="input-with-label">
-                    <span class="input-label">{{ t('storyboardProcess.imageHeight') }}</span>
-                    <el-input-number v-model="imageSettings.height" :min="64" :max="2048" :step="64"
-                                     controls-position="right" />
-                  </div>
-                </el-col>
-                <el-col :span="8">
-                  <div class="input-with-label">
-                    <span class="input-label">{{ t('storyboardProcess.imageStyle') }}</span>
-                    <el-select v-model="imageSettings.style" class="style-select">
-                      <el-option v-for="style in styleList" :key="style.value"
-                                 :label="t(`storyboardProcess.style${style.value.charAt(0).toUpperCase() + style.value.slice(1)}`)"
-                                 :value="style.value" />
-                    </el-select>
-                  </div>
-                </el-col>
-              </el-row>
-            </div>
+            <ImageSettingsControl v-model="imageSettings" />
           </el-col>
         </el-row>
 
@@ -91,12 +63,12 @@
                          :disabled="loading || selectedRows.length === 0">
                 {{ t('storyboardProcess.convertSelectedPrompts') }}
               </el-button>
-              <el-button type="primary" @click="generateSelectedImages(selectedRows)" :loading="generating"
-                         :disabled="generatingAllAudio || selectedRows.length === 0">
+              <el-button type="primary" @click="generateSelectedImages(selectedRows)" :loading="isGeneratingImages"
+                         :disabled="isGeneratingAudio || selectedRows.length === 0">
                 {{ t('storyboardProcess.generateSelectedImages') }}
               </el-button>
-              <el-button type="primary" @click="generateSelectedAudio(selectedRows)" :loading="generatingAllAudio"
-                         :disabled="generating || selectedRows.length === 0">
+              <el-button type="primary" @click="generateSelectedAudio(selectedRows)" :loading="isGeneratingAudio"
+                         :disabled="isGeneratingImages || selectedRows.length === 0">
                 {{ t('storyboardProcess.generateSelectedAudio') }}
               </el-button>
               <el-button type="primary" @click="handleSaveAll" :loading="saving">
@@ -107,18 +79,31 @@
         </el-row>
 
         <!-- 第五排：进度显示 -->
-        <el-row v-show="(generating || generatingAllAudio) && progress.taskId" :gutter="24"
+        <el-row v-show="imageGenerationProgress.taskId || audioGenerationProgress.taskId" :gutter="24"
                 class="settings-row progress-row">
           <el-col :span="24">
             <div class="settings-group">
               <div class="settings-title">{{ t('storyboardProcess.generationProgress') }}</div>
               <div class="progress-container">
-                <div class="progress-with-button">
-                  <el-progress :percentage="Math.floor((progress.current / progress.total) * 100)"
-                               :format="() => `${progress.current}/${progress.total}`"
-                               :status="progress.status === 'error' ? 'exception' : progress.status === 'completed' ? 'success' : ''"
-                               :indeterminate="progress.status === 'running' && progress.current === 0" :duration="1" />
-                  <el-button type="danger" @click="stopGeneration" style="margin-left: 10px">
+                <!-- 音频进度 -->
+                <div v-if="audioGenerationProgress.taskId" class="progress-with-button">
+                  <el-progress 
+                               :percentage="audioGenerationProgress.total > 0 ? Math.floor((audioGenerationProgress.current / audioGenerationProgress.total) * 100) : 0"
+                               :format="() => `${audioGenerationProgress.current}/${audioGenerationProgress.total}`"
+                               :status="audioGenerationProgress.status === 'error' ? 'exception' : audioGenerationProgress.status === 'completed' ? 'success' : ''"
+                               :duration="1" />
+                  <el-button type="danger" @click="stopAudioGeneration" style="margin-left: 10px">
+                    {{ t('storyboardProcess.stopGeneration') }}
+                  </el-button>
+                </div>
+                <!-- 图片进度 -->
+                <div v-if="imageGenerationProgress.taskId" class="progress-with-button">
+                  <el-progress 
+                               :percentage="imageGenerationProgress.total > 0 ? Math.floor((imageGenerationProgress.current / imageGenerationProgress.total) * 100) : 0"
+                               :format="() => `${imageGenerationProgress.current}/${imageGenerationProgress.total}`"
+                               :status="imageGenerationProgress.status === 'error' ? 'exception' : imageGenerationProgress.status === 'completed' ? 'success' : ''"
+                               :duration="1" />
+                  <el-button type="danger" @click="stopImageGeneration" style="margin-left: 10px">
                     {{ t('storyboardProcess.stopGeneration') }}
                   </el-button>
                 </div>
@@ -144,7 +129,7 @@
                         @input="handleSceneChange(row)" />
               <div class="button-group">
                 <el-button type="primary" size="small" @click="generateSelectedAudio([row])"
-                           :loading="generatingAudioScenes.has(row.id)" :disabled="generating || generatingAllAudio">
+                           :loading="isGeneratingAudio" :disabled="isGeneratingImages || isGeneratingAudio">
                   {{ t('storyboardProcess.generateAudio') }}
                 </el-button>
               </div>
@@ -180,7 +165,7 @@
                         @input="handleSceneChange(row)" />
               <div class="button-group">
                 <el-button type="primary" size="small" @click="generateSelectedImages([row])"
-                           :loading="generatingScenes.has(row.id)" :disabled="generating">
+                           :loading="isGeneratingImages" :disabled="isGeneratingImages || isGeneratingAudio">
                   {{ t('storyboardProcess.generateImage') }}
                 </el-button>
               </div>
@@ -231,7 +216,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElTable } from 'element-plus'
@@ -239,12 +224,10 @@ import { chapterApi } from '@/api/chapter_api'
 import { mediaApi } from '@/api/media_api'
 import { getResourcePath } from '@/utils/resourcePath'
 import voices from '@/utils/voices'
-
-interface ImageSettings {
-  width: number
-  height: number
-  style: string
-}
+import { ImageSettings } from '@/types/imageSettings'
+import { usePromptStyleStore } from '@/store/usePromptStyleStore'
+import { useGeneration } from '@/composables/useGeneration'
+import ImageSettingsControl from '@/components/ImageSettingsControl.vue'
 
 interface AudioSettings {
   narrator: string
@@ -252,7 +235,7 @@ interface AudioSettings {
 }
 
 interface Scene {
-  id: number    // 添加序号字段
+  id: string    // 添加序号字段
   span: string
   base_scene:string
   scene: string
@@ -260,30 +243,45 @@ interface Scene {
   translating: boolean
   modified: boolean
   image: string
-  audio: string  
-  generatingAudio?: boolean  // 用于控制音频生成按钮的状态
+  audio: string
+  reference_image_infos: {
+    character1: string
+    character2: string
+    scene: string
+  }
 }
 
 const route = useRoute()
 const { t } = useI18n()
 const projectName = computed(() => route.params.name as string)
 
+// 为图片和音频分别创建生成器实例
+const { 
+  isGenerating: isGeneratingImages, 
+  generationProgress: imageGenerationProgress, 
+  start: startImageGeneration, 
+  stop: stopImageGeneration 
+} = useGeneration();
+
+const { 
+  isGenerating: isGeneratingAudio, 
+  generationProgress: audioGenerationProgress, 
+  start: startAudioGeneration, 
+  stop: stopAudioGeneration 
+} = useGeneration();
+
+// 获取提示词样式store
+const promptStyleStore = usePromptStyleStore()
+
 // 章节列表相关
 const chapterList = ref<{ label: string; value: string }[]>([])
 const chapterName = ref('')
 
-// 画风列表
-const styleList = ref([
-  { label: '动漫', value: 'anime' },
-  { label: '写实', value: 'realism' },
-  { label: '风景', value: 'scenery' }
-])
-
 // 图像设置
 const imageSettings = ref<ImageSettings>({
-  width: 768,
+  width: 512,
   height: 768,
-  style: 'anime'
+  style: 'base'
 })
 
 // 音频设置
@@ -291,8 +289,6 @@ const audioSettings = ref<AudioSettings>({
   narrator: '',
   speakingRate: 0
 })
-
-
 
 // 音频设置
 const voiceList = ref([
@@ -324,138 +320,6 @@ const handleChapterChange = () => {
   isAllSelected.value = false // 重置全选状态
   fetchSceneList() // 当选择的章节改变时，重新获取场景列表
 }
-
-// 进度设置
-const progress = ref({
-  current: 0,
-  total: 0,
-  status: '',
-  taskId: '',
-  errors: [] as string[]
-})
-
-
-
-
-const generating = ref(false)  // 用于生成所有图片按钮的loading状态
-const generatingAllAudio = ref(false)  // 用于生成所有音频按钮的loading状态
-const generatingScenes = ref(new Set<number>())  // 用于记录正在生成图片的单个场景
-const generatingAudioScenes = ref(new Set<number>())  // 用于记录正在生成音频的单个场景
-
-// 重置进度
-const resetProgress = () => {
-  // 清理定时器
-  if (progressTimer) {
-    clearInterval(progressTimer)
-    progressTimer = null
-  }
-  
-  // 重置进度状态
-  progress.value = {
-    current: 0,
-    total: 0,
-    status: '',
-    taskId: '',
-    errors: []
-  }
-  
-  // 重置生成状态
-  generating.value = false
-  generatingScenes.value.clear()
-  generatingAllAudio.value = false  // 重置生成所有音频按钮的状态
-}
-
-// 检查生成进度
-const checkGenerationProgress = async () => {
-  if (!progress.value.taskId || (!generating.value && !generatingAllAudio.value)) {
-    if (progressTimer) {
-      clearInterval(progressTimer)
-      progressTimer = null
-    }
-    return
-  }
-  
-  try {
-    const response = await mediaApi.getProgress(progress.value.taskId)
-    const { status, current, total, errors } = response
-
-    if (current > progress.value.current) {//每完成一个，就更新一个
-      // 如果是音频生成任务，更新音频路径
-        if (generatingAllAudio.value) {
-         
-          generatingAudioScenes.value.forEach((sceneId) => {
-            const scene = sceneList.value.find(s => s.id === sceneId)
-            scene.audio=getResourcePath(projectName.value, chapterName.value, scene.id, 'audio')
-
-          })
-        }
-
-        if (generating.value) {//生成的图片任务，更新图片路径
-          generatingScenes.value.forEach((sceneId) => {
-            const scene = sceneList.value.find(s => s.id === sceneId)
-            scene.image=getResourcePath(projectName.value, chapterName.value, scene.id, 'image')
-
-          })
-        }
-    }
-    
-    progress.value.current = current
-    progress.value.total = total
-    progress.value.status = status
-    progress.value.errors = errors || []
-
-    
-    
-    if (status === 'completed' || status === 'error' || status === 'cancelled' || status === 'not_found') {
-      if (progressTimer) {
-        clearInterval(progressTimer)
-        progressTimer = null
-      }
-
-      
-      
-      if (status === 'completed') {
-        progress.value.current = progress.value.total
-        await new Promise(resolve => setTimeout(resolve, 300))
-        
-        
-        
-      }
-      
-      if (generating.value) {
-        generating.value = false
-        generatingScenes.value.clear()
-      }
-      if (generatingAllAudio.value) {
-        generatingAllAudio.value = false
-        generatingAudioScenes.value.clear()
-      }
-      
-      if (status === 'completed') {
-        ElMessage.success(t('common.success'))
-      } else if (status === 'cancelled') {
-        ElMessage.info(t('storyboardProcess.generationCancelled'))
-      } else if (status === 'error') {
-        ElMessage.error(errors?.join('\n') || t('common.error'))
-      }
-      
-      resetProgress()
-    }
-  } catch (error) {
-    console.error('Failed to check generation progress:', error)
-    if (progressTimer) {
-      clearInterval(progressTimer)
-      progressTimer = null
-    }
-    generating.value = false
-    generatingAllAudio.value = false
-    generatingScenes.value.clear()
-    generatingAudioScenes.value.clear()
-    ElMessage.error(t('common.error'))
-    resetProgress()
-  }
-}
-
 
 // 添加选中行的状态
 const selectedRows = ref<Scene[]>([])
@@ -541,7 +405,7 @@ const convertSelectedPrompts = async (selectedRows:Scene[]) => {
     }
 
     // 获取所有需要转换的场景描述
-    const descriptions = scenesToConvert.map(row =>row.base_scene+","+row.scene)
+    const descriptions = scenesToConvert.map(row =>"["+row.base_scene+"],"+row.scene)
     scenesToConvert.forEach(row => {
       row.translating = true//设置为正在转换
     })
@@ -564,61 +428,59 @@ const convertSelectedPrompts = async (selectedRows:Scene[]) => {
   }
 }
 
-// 生成图片
-const generateSelectedImages = async (selectedRows:Scene[]) => {
-  if (selectedRows.length === 0) {
-    ElMessage.warning(t('storyboardProcess.noSelection'))
-    return
+const extractReferenceImageInfo = (scene:Scene) => {  
+  let reference_image_infos = {
+    character1: '',
+    character2: '',
+    scene: scene.base_scene
   }
+ 
+  const characters = scene.scene.match(/\{([^}]+)\}/g)?.map(match => match.slice(1, -1));
+ 
+  if (characters && characters.length>0) {
+    reference_image_infos.character1=characters[0]
+    if (characters.length>1) {
+      reference_image_infos.character2=characters[1]
+    }
+  }
+  return reference_image_infos
+}
 
+// 生成图片
+const generateSelectedImages = (selectedRows:Scene[]) => {
   const scenes = selectedRows.filter(scene => scene.prompt)
   if (scenes.length === 0) {
     ElMessage.warning(t('storyboardProcess.noPrompts'))
     return
   }
 
-  if (generating.value) {
-    ElMessage.warning(t('storyboardProcess.generationInProgress'))
-    return
-  }
+  const prompts = scenes.map(scene => ({
+    id: scene.id,
+    prompt: scene.prompt
+  }))
 
-  try {
-    generating.value = true
-    // 将选中的场景添加到生成集合中
-    scenes.forEach(scene => generatingScenes.value.add(scene.id))
-    
-    const params = {
-      project_name: projectName.value,
-      chapter_name: chapterName.value,
-      imageSettings: imageSettings.value,
-      prompts: scenes.map(scene => ({
-        id: scene.id,
-        prompt: scene.prompt
-      }))
-    }
-    
-    const data = await mediaApi.generateImages(params)
-    progress.value.taskId = data.task_id
-    progress.value.total = data.total
-    progress.value.current = 0
-    progress.value.status = data.status
-    progress.value.errors = data.errors || []
-    
-    // 开始定时检查进度
-    if (progressTimer) clearInterval(progressTimer)
-    progressTimer = setInterval(checkGenerationProgress, 1000)
-    
-  } catch (error) {
-
-    ElMessage.error(t('common.operationFailed'))
-    generating.value = false
-    generatingScenes.value.clear()
-    resetProgress()
-  }
+  const reference_image_infos = scenes.map(extractReferenceImageInfo)
+  startImageGeneration(prompts, () => mediaApi.generateImages({
+    project_name: projectName.value,
+    chapter_name: chapterName.value,
+    imageSettings: imageSettings.value,
+    prompts,
+    reference_image_infos
+  }))
 }
 
+// 监听图片生成状态，刷新图片
+watch(() => [...imageGenerationProgress.completedIds], (newIds) => {
+  if (newIds.length === 0) return;
+  const lastCompletedId = newIds[newIds.length - 1];
+  const scene = sceneList.value.find(s => s.id === lastCompletedId);
+  if (scene) {
+    scene.image = getResourcePath(projectName.value, chapterName.value, scene.id, 'image');
+  }
+});
+
 // 生成音频
-const generateSelectedAudio = async (selectedRows:Scene[]) => {
+const generateSelectedAudio = (selectedRows:Scene[]) => {
   if (selectedRows.length === 0) {
     ElMessage.warning(t('storyboardProcess.noSelection'))
     return
@@ -630,76 +492,33 @@ const generateSelectedAudio = async (selectedRows:Scene[]) => {
     return
   }
 
-  try {
-    generatingAllAudio.value = true
-    const params = {
-      project_name: projectName.value,
-      chapter_name: chapterName.value,
-      audioSettings: {
-        voice: audioSettings.value.narrator,
-        rate: `${audioSettings.value.speakingRate>=0?'+':''}${audioSettings.value.speakingRate}%`
-      },
-      prompts: scenes.map(scene => ({
-        id: scene.id,
-        prompt: scene.span
-      }))
-    }
-    scenes.forEach(scene => generatingAudioScenes.value.add(scene.id))
-    const data = await mediaApi.generateAudio(params)
-    progress.value.taskId = data.task_id
-    progress.value.total = data.total
-    progress.value.current = 0
-    progress.value.status = data.status
-    progress.value.errors = data.errors || []
-    
-    // 开始定时检查进度
-    if (progressTimer) clearInterval(progressTimer)
-    progressTimer = setInterval(checkGenerationProgress, 1000)
-    
-  } catch (error) {
-    console.error('Failed to generate all audio:', error)
-    ElMessage.error(t('common.operationFailed'))
-    generatingAllAudio.value = false
-    resetProgress()
-  }
+  const prompts = scenes.map(scene => ({
+    id: scene.id,
+    prompt: scene.span
+  }));
+  
+  const audioApiParams = {
+    project_name: projectName.value,
+    chapter_name: chapterName.value,
+    audioSettings: {
+      voice: audioSettings.value.narrator,
+      rate: `${audioSettings.value.speakingRate>=0?'+':''}${audioSettings.value.speakingRate}%`
+    },
+    prompts,
+  };
+
+  startAudioGeneration(prompts, () => mediaApi.generateAudio(audioApiParams));
 }
 
-//停止生成
-const stopGeneration = async () => {
-  try {
-    if (!progress.value.taskId) {
-      ElMessage.info(t('storyboardProcess.noTaskToStop'))
-      return
-    }
-
-    await mediaApi.cancelTask(progress.value.taskId)
-    
-
-    // 根据任务ID判断是音频还是图片任务
-    const isAudioTask = progress.value.taskId.startsWith('audio_')
-    
-    // 重置相关状态
-    if (isAudioTask) {
-      // 重置所有场景的音频生成状态
-      sceneList.value.forEach(scene => {
-        if (scene.generatingAudio) {
-          scene.generatingAudio = false
-        }
-      })
-      generatingAllAudio.value = false
-    } else {
-      // 重置图片生成状态
-      generatingScenes.value.clear()
-    }
-
-    resetProgress()
-    generating.value = false
-    ElMessage.success(t('storyboardProcess.stopGenerationSuccess'))
-  } catch (error) {
-    console.error('Failed to stop generation:', error)
-    ElMessage.error(t('common.error'))
+// 监听音频生成状态，刷新音频
+watch(() => [...audioGenerationProgress.completedIds], (newIds) => {
+  if (newIds.length === 0) return;
+  const lastCompletedId = newIds[newIds.length - 1];
+  const scene = sceneList.value.find(s => s.id === lastCompletedId);
+  if (scene) {
+    scene.audio = getResourcePath(projectName.value, chapterName.value, scene.id, 'audio');
   }
-}
+});
 
 const loading = ref(false)
 const sceneList = ref<Scene[]>([])
@@ -738,8 +557,7 @@ const fetchSceneList = async () => {
         image: getResourcePath(projectName.value, chapterName.value, scene.id, 'image'),
         audio: getResourcePath(projectName.value, chapterName.value, scene.id, 'audio'),
         translating: false,
-        modified: false,
-        generatingAudio: false
+        modified: false
       }))
       console.log('Scene list with audio paths:', sceneList.value)
       updatePagination()
@@ -756,23 +574,6 @@ const handleSceneChange = (row: Scene) => {
   console.log('Scene changed:', row)
   row.modified = true
 }
-
-// 转换为提示词
-// const handleTranslatePrompt = async (row: Scene) => {
-//   try {
-//     row.translating = true
-
-//     const prompt = await chapterApi.translatePrompt(projectName.value, [row.base_scene+","+row.scene])
-//     row.prompt = prompt[0]
-//     row.modified = true
-//     ElMessage.success('转换成功')
-//   } catch (error: any) {
-//     ElMessage.error(error.message || '转换失败')
-//     console.error('转换提示词失败:', error)
-//   } finally {
-//     row.translating = false
-//   }
-// }
 
 // 保存所有修改
 const handleSaveAll = async () => {
@@ -801,29 +602,26 @@ const handleSaveAll = async () => {
   }
 }
 
-
 const saving = ref(false)
-
-// 定时器
-let progressTimer: ReturnType<typeof setInterval> | null = null
 
 // 添加表格引用
 const tableRef = ref<InstanceType<typeof ElTable>>()
 
+async function getPromptStyle(){
+  // 获取提示词样式
+  await promptStyleStore.fetchStyles()
+  console.log(promptStyleStore.styleOptions)
+}
+
 onMounted(() => {
-  console.log(projectName.value)
+  
   for(const voice in voices){
     voiceList.value.push({ label: voice+" - "+voices[voice], value: voice })
   }
   audioSettings.value.narrator=voiceList.value[0].value
+  
+  getPromptStyle()
   fetchChapterList() // 组件加载时获取章节列表
-})
-
-onBeforeUnmount(() => {
-  if (progressTimer) {
-    clearInterval(progressTimer)
-    progressTimer = null
-  }
 })
 </script>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Setting, Moon, Sunny } from '@element-plus/icons-vue'
+import { Setting, Moon, Sunny, Notebook } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { Language } from '../locales'
 import { useI18n } from 'vue-i18n'
@@ -47,6 +47,12 @@ const toggleTheme = () => {
         />
         <span class="lang-label">English</span>
       </div>
+      <router-link to="/prompt-styler" style="text-decoration: none;">
+        <el-button type="primary" class="settings-btn">
+          <el-icon class="el-icon--left"><Notebook /></el-icon>
+          {{ t('promptStyler.title') }}
+        </el-button>
+      </router-link>
       <router-link to="/setting" style="text-decoration: none;">
         <el-button type="primary" class="settings-btn">
           <el-icon class="el-icon--left"><Setting /></el-icon>

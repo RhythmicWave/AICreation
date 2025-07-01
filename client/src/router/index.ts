@@ -13,6 +13,11 @@ const router = createRouter({
       component: () => import('@/views/Setting/index.vue')
     },
     {
+      path: '/prompt-styler',
+      name: 'PromptStyler',
+      component: () => import('@/views/PromptStyler/index.vue')
+    },
+    {
       path: '/project',
       name: 'Project',
       component: () => import('@/views/Project/index.vue')
@@ -31,14 +36,9 @@ const router = createRouter({
           component: () => import('@/views/ProjectMain/TextCreation/index.vue')
         },
         {
-          path: 'character-library',
-          name: 'CharacterLibrary',
-          component: () => import('@/views/ProjectMain/CharacterLibrary/index.vue')
-        },
-        {
-          path: 'scene-library',
-          name: 'SceneLibrary',
-          component: () => import('@/views/ProjectMain/SceneLibrary/index.vue')
+          path: 'library/:entityType',
+          name: 'EntityLibrary',
+          component: () => import('@/views/ProjectMain/EntityLibrary/index.vue')
         },
         {
           path: 'storyboard-process',

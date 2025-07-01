@@ -17,7 +17,7 @@
   },
   "10": {
     "inputs": {
-      "vae_name": "flux-vae.sft"
+      "vae_name": "ae.safetensors"
     },
     "class_type": "VAELoader",
     "_meta": {
@@ -54,7 +54,7 @@
   "45": {
     "inputs": {
       "model_path": "svdq-fp4-flux.1-dev",
-      "cache_threshold": 0,
+      "cache_threshold": 0.12000000000000002,
       "attention": "nunchaku-fp16",
       "cpu_offload": "auto",
       "device_id": 0,
@@ -80,7 +80,7 @@
   },
   "49": {
     "inputs": {
-      "lora_name": "flux.1-Turbo.safetensors",
+      "lora_name": "flux.1-turbo-alpha.safetensors",
       "lora_strength": 1.0000000000000002,
       "model": [
         "45",
@@ -102,12 +102,12 @@
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "CLIP文本编码"
+      "title": "CLIP文本编码-Negative"
     }
   },
   "51": {
     "inputs": {
-      "seed": 211785898307899,
+      "seed": 807358852710662,
       "steps": 8,
       "cfg": 1,
       "sampler_name": "euler",
@@ -148,7 +148,7 @@
   },
   "53": {
     "inputs": {
-      "text": "female student, short brown hair, yellow short-sleeved T-shirt, denim shorts, colorful backpack, smiling, poking, another female student, shoulder-length black hair, white short-sleeved blouse, navy blue pleated skirt, book bag, school basketball court",
+      "text": "",
       "clip": [
         "44",
         0

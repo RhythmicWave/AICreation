@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response,Body
-from server.config.config import load_config
+from server.config.config import load_config, get_prompt_style_by_name
 from server.services.image_service import ImageService
 from server.services.audio_service import AudioService
 from server.utils.response import make_response
@@ -24,7 +24,11 @@ async def generate_images(request: Request):
         project_name = data.get('project_name')
         chapter_name = data.get('chapter_name')
         prompts = data.get('prompts')
-        image_settings = data.get('imageSettings')  # 暂存，等待后续开发
+        image_settings = data.get('imageSettings')
+        
+        reference_image_infos = data.get('reference_image_infos')
+        
+        
         
         if not all([project_name, chapter_name, prompts]):
             return make_response(status='error', msg='缺少必要参数：project_name, chapter_name, prompts')
@@ -32,23 +36,55 @@ async def generate_images(request: Request):
         # 获取工作流和参数
         workflow = data.get('workflow', config.get('default_workflow', {}).get('name', 'default_workflow.json'))
 
- 
-
-        params = data.get('params', {})
+        params = {}
         width = image_settings.get('width', 512)
-        height = image_settings.get('height', 512)
-        style=image_settings.get('style','anime')
+        height = image_settings.get('height', 768)
+        style = image_settings.get('style','sai-anime')
+        
+
+        style_template = "{prompt}"
+        negative_prompt = ""
+        if style:
+             
+            # 使用新函数获取风格
+            style_data = get_prompt_style_by_name(style)
+
+            # 如果未找到风格，返回错误
+            if not style_data:
+                return make_response(status='error', msg=f'未找到指定的风格: {style}')
+
+            style_template = style_data.get('prompt')
+            negative_prompt = style_data.get('negative_prompt', "")
+        
+        
         params['width']=width
         params['height']=height
-        params['style']=style
-       
+        
+        if negative_prompt:
+            params['negative_prompt'] = negative_prompt
+        
+        reference_image_paths=[]
+        if config['comfyui'].get('reference_image_mode', True) and reference_image_infos:
+            for info in reference_image_infos:
+                character1=info.get('character1','')
+                character2=info.get('character2','')
+                scene=info.get('scene','')
+                path1=os.path.join(config['projects_path'],project_name,"Character",character1,"image.png") if character1 else ''
+                path2=os.path.join(config['projects_path'],project_name,"Character",character2,"image.png") if character2 else ''
+                path3=os.path.join(config['projects_path'],project_name,"Scene",scene,"image.png") if scene else ''
+                reference_image_paths.append((path1,path2,path3))
+                
+            workflow="nunchaku-flux-kontext-multi-images.json"#当有参考图片时，使用这个工作流
+            print(reference_image_paths)
+            params['reference_image_paths']=reference_image_paths
 
         # 构建输出路径数组
         output_dirs = []
+        processed_prompts = []
         for prompt_data in prompts:
             span_id = prompt_data.get('id')
             if span_id is None:
-                return make_response(status='error', msg='prompts中缺少id字段')
+                span_id=''
                 
             # 构建输出路径（确保与获取图片时的路径一致）
             span_path = os.path.join(config['projects_path'], project_name, chapter_name, str(span_id))
@@ -57,16 +93,26 @@ async def generate_images(request: Request):
             # 确保目录存在
             os.makedirs(span_path, exist_ok=True)
             logger.info(f"Created output directory: {span_path}")
-        
+
+            # 获取原始提示词
+            prompt_text = prompt_data.get('prompt', '')
+            
+            # 如果有风格模板，应用模板
+            if style_template and '{prompt}' in style_template:
+                processed_prompt = style_template.replace('{prompt}', prompt_text)
+            else:
+                processed_prompt = prompt_text
+                
+            processed_prompts.append(processed_prompt)
+
         # 提取所有提示词
-        prompt_texts = [p.get('prompt') for p in prompts]
-        if not all(prompt_texts):
+        if not all(processed_prompts):
             return make_response(status='error', msg='prompts中存在空的prompt字段')
         
         try:
             # 调用图像服务生成图片
             result = image_service.generate_images(
-                prompts=prompt_texts,
+                prompts=processed_prompts,
                 output_dirs=output_dirs,
                 workflow=workflow,
                 params=params

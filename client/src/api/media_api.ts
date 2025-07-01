@@ -8,8 +8,13 @@ interface GenerateImageParams {
     height: number
     style: string
   }
+  reference_image_infos?: {
+    character1: string
+    character2: string
+    scene: string
+  }[]
   prompts: {
-    id: number
+    id?: string
     prompt: string
   }[]
 }
@@ -22,7 +27,7 @@ interface GenerateAudioParams {
     rate: string
   }
   prompts: {
-    id: number
+    id: string
     prompt: string
   }[]
 }

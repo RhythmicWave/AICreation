@@ -77,9 +77,13 @@ class VideoService:
         audio = AudioFileClip(audio_path)
         return image, audio
 
-    async def _process_segment(self, subdir: str, temp_dir: str, settings: Dict) -> Optional[str]:
+    async def _process_segment(self, subdir: str, temp_dir: str, settings: Dict) -> Optional[Tuple[str, str]]:
         """处理单个视频片段"""
         temp_file = os.path.join(temp_dir, f"vid_{subdir}_{os.getpid()}.mp4")
+        temp_audio_path = os.path.join(
+            os.path.dirname(temp_file), 
+            f"temp_audio_{os.getpid()}_{time.time_ns()}.m4a"
+        )
         start_time = time.time()
         frames = []
 
@@ -109,7 +113,7 @@ class VideoService:
             # 写入视频
             await loop.run_in_executor(
                 None,
-                lambda: self._write_temp_video(frames, audio, temp_file, settings)
+                lambda: self._write_temp_video(frames, audio, temp_file, temp_audio_path, settings)
             )
             
             logger.info("完成片段 %s | 耗时: %.1fs | 大小: %.1fMB", 
@@ -119,12 +123,13 @@ class VideoService:
             with self.task_lock:
                 self.progress += 1
                 
-            return temp_file
+            return temp_file, temp_audio_path
 
         except Exception as e:
             logger.error("处理失败 [%s]: %s", subdir, str(e))
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
+            # On failure, attempt to clean up the files this segment created
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, self._cleanup_temp_files, [temp_file, temp_audio_path])
             return None
         finally:
             # 释放资源
@@ -135,7 +140,7 @@ class VideoService:
             del frames
             gc.collect()
 
-    def _write_temp_video(self, frames: list, audio: AudioFileClip, output_path: str, settings: Dict):
+    def _write_temp_video(self, frames: list, audio: AudioFileClip, output_path: str, temp_audio_path: str, settings: Dict):
         """
         安全写入视频片段
         使用临时文件来暂存，避免内存占用过高
@@ -169,6 +174,7 @@ class VideoService:
                 output_path,
                 codec=None,
                 audio_codec='aac',
+                temp_audiofile=temp_audio_path, # 明确指定临时音频文件路径
                 threads=settings.get('threads', 4),
                 ffmpeg_params=ffmpeg_params,
                 logger=None
@@ -176,12 +182,14 @@ class VideoService:
 
     async def generate_video(self, chapter_path: str, video_settings: Dict = None) -> str:
         """生成视频主流程"""
+        chapter_path = os.path.abspath(chapter_path)
         self.stop_flag.clear()
         final_settings = {**self.default_settings, **(video_settings or {})}
         
         final_settings['chapter_path'] = chapter_path
         output_path = os.path.join(chapter_path, "video.mp4")
-        temp_files = []
+        temp_video_files = []
+        all_temp_files = []
    
         try:
             # 获取待处理片段列表
@@ -211,17 +219,21 @@ class VideoService:
                 batch_results = await asyncio.gather(*tasks)
                 
                 # 收集结果
-                valid_results = [r for r in batch_results if r]
-                temp_files.extend(valid_results)
+                for result in batch_results:
+                    if result:
+                        video_path, audio_path = result
+                        temp_video_files.append(video_path)
+                        all_temp_files.extend([video_path, audio_path])
                 
                 # 检查是否取消
                 if self.stop_flag.is_set():
-                    await self._cleanup_temp_files_async(temp_files)
+                    loop = asyncio.get_running_loop()
+                    await loop.run_in_executor(None, self._cleanup_temp_files, all_temp_files)
                     logger.info("视频生成被用户取消")
                     raise ValueError("视频生成被用户取消")
                         
             # 合并临时文件
-            if not temp_files:
+            if not temp_video_files:
                 raise ValueError("没有生成有效视频片段")
                 
             # 更新进度状态为合并阶段
@@ -232,7 +244,7 @@ class VideoService:
             loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
                 None,
-                lambda: self._merge_videos(temp_files, output_path, final_settings)
+                lambda: self._merge_videos(temp_video_files, output_path, final_settings)
             )
             
             # 标记完成
@@ -247,9 +259,9 @@ class VideoService:
             raise
         finally:
             # 清理临时文件
-            if temp_files:
+            if all_temp_files:
                 loop = asyncio.get_running_loop()
-                await loop.run_in_executor(None, lambda: self._cleanup_temp_files(temp_files))
+                await loop.run_in_executor(None, self._cleanup_temp_files, all_temp_files)
 
     def _merge_videos(self, temp_files: List[str], output_path: str, settings: Dict) -> str:
         """合并视频片段"""
@@ -328,18 +340,23 @@ class VideoService:
         return True
 
     def _cleanup_temp_files(self, files: List[str]):
-        """清理临时文件"""
+        """Robustly cleans up temporary files, with retries for locked files."""
         for f_path in files:
-            try:
-                if os.path.exists(f_path):
+            if not os.path.exists(f_path):
+                continue
+            
+            attempts = 3
+            for i in range(attempts):
+                try:
                     os.remove(f_path)
                     logger.debug("已清理: %s", f_path)
-            except Exception as e:
-                logger.warning("清理失败 %s: %s", f_path, str(e))
-                
-    async def _cleanup_temp_files_async(self, files: List[str]):
-        """异步清理临时文件"""
-        if not files:
-            return
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, lambda: self._cleanup_temp_files(files))
+                    break  # Success
+                except PermissionError as e:  # Specifically catch PermissionError for retries
+                    if i < attempts - 1:
+                        logger.warning("文件被占用，将在0.5秒后重试: %s. Error: %s", f_path, e)
+                        time.sleep(0.5)
+                    else:
+                        logger.error("多次尝试后仍无法删除文件: %s. Error: %s", f_path, e)
+                except Exception as e:
+                    logger.error("清理临时文件时发生未知错误 %s: %s", f_path, str(e))
+                    break  # Don't retry on other errors

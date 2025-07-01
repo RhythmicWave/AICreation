@@ -1,19 +1,18 @@
-import { VideoSettings } from '@/types/video'
 import request from './request'
+import type { VideoSettings, VideoProgress } from '@/types/video'
 
-export const videoApi = {
-  // 生成视频
-  generateVideo(data: VideoSettings) {
-    return request.post('video/generate_video', data)
-  },
-  
-  // 获取视频生成进度
+class VideoApi {
+  generateVideo(settings: VideoSettings) {
+    return request.post<null>('/video/generate_video', settings)
+  }
+
   getGenerationProgress() {
-    return request.get('video/generation_progress')
-  },
-  
-  // 取消视频生成
+    return request.get<VideoProgress>('/video/generation_progress')
+  }
+
   cancelGeneration() {
-    return request.post('video/cancel_generation')
+    return request.post<null>('/video/cancel_generation')
   }
 }
+
+export const videoApi = new VideoApi()

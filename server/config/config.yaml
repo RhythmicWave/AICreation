@@ -1,9 +1,10 @@
 comfyui:
   api_url: http://127.0.0.1:8000
+  reference_image_mode: true
 default_workflow:
   name: nunchaku-flux.1-dev.json
 llm:
-  api_key: your_api_key
+  api_key: your api key
   api_url: https://api.siliconflow.cn/v1
   model_name: deepseek-ai/DeepSeek-V3
   proxies: null

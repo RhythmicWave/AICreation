@@ -13,6 +13,7 @@
     "@vueuse/core": "^10.7.2",
     "axios": "^1.7.9",
     "element-plus": "^2.5.3",
+    "pinia": "^3.0.3",
     "vue": "^3.5.13",
     "vue-i18n": "^9.9.0",
     "vue-router": "^4.2.5"
