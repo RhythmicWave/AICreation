@@ -29,7 +29,11 @@
 
 ### 输出视频展示
 
-https://github.com/user-attachments/assets/e1e3b0ea-6d67-473f-ae30-1f87ef883f8b
+
+
+https://github.com/user-attachments/assets/4390e418-3186-4082-8fed-236581b25b20
+
+
 
 
 ## 安装说明
