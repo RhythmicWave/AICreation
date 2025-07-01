@@ -178,7 +178,7 @@ const videoSettings = ref<VideoSettings>({
   chapter_name:'',
   fade_duration:1,
   use_pan: true,
-  pan_range: [0.3, 0],
+  pan_range: [0, 0.5],
   fps: 20,
   resolution:[768,768]
 })
