@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import Response
+from fastapi.responses import JSONResponse
 
 class APIException(Exception):
     def __init__(self, detail: str, status: str = "error"):
@@ -16,16 +16,17 @@ def make_response(data=None, msg='', status='success'):
         status: 状态，默认为'success'
         
     Returns:
-        返回统一格式的 JSON 响应:
+        JSONResponse：
         {
             'status': 'success' | 'error',
             'data': Any,
             'message': str
         }
     """
-    return {
+    status_code = 200 if status == 'success' else 400
+    return JSONResponse(status_code=status_code, content={
         'status': status,
         'data': data,
         'message': msg,
-    }
+    })
 

@@ -276,6 +276,7 @@ AICreation/                # 项目根目录
 │   │   ├── kg_service.py     # 知识图谱管理相关业务逻辑
 │   │   ├── scene_service.py  # 场景相关业务逻辑
 │   │   ├── chapter_file_service.py # 章节文件相关业务逻辑
+│   │   ├── schemas.py        # Pydantic 数据模型与 JSON Schema 追加工具
 │   │   └── base_service.py   # 服务基类 (含单例)
 │   ├── utils/            # 工具类
 │   │   ├── image_effect.py   # 图像特效工具
@@ -378,6 +379,7 @@ AICreation/                # 项目根目录
 │   │   ├── kg_service.py     # 知识图谱管理相关业务逻辑
 │   │   ├── scene_service.py  # 场景相关业务逻辑
 │   │   ├── chapter_file_service.py # 章节文件相关业务逻辑
+│   │   ├── schemas.py        # Pydantic 数据模型与 JSON Schema 追加工具
 │   │   └── base_service.py   # 服务基类 (含单例)
 │   ├── utils/            # 工具类
 │   │   ├── image_effect.py   # 图像特效工具
@@ -407,5 +409,5 @@ AICreation/                # 项目根目录
 ```
 
 ## TODO
-- [ ] 优化相关提示词、LLM交互代码逻辑
+- [x] 优化相关提示词、LLM交互代码逻辑（引入 Pydantic 模型与 JSON Schema 解析；优化 prompts ）
 - [ ] 引入视频生成模型，如 Wan 2.1？

@@ -14,4 +14,6 @@ imageio-ffmpeg>=0.2.0
 proglog<=1.0.0
 langchain
 langchain-openai
+pydantic==2.11.7
+json-repair
 

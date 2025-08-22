@@ -10,6 +10,7 @@ llm:
   proxies: null
   verify_ssl: false
   window_size: 4
+  parse_retries: 2
 relative_projects_path: ../projects/
 relative_prompts_path: prompts/
 relative_workflow_path: workflow/

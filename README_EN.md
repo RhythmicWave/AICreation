@@ -273,6 +273,7 @@ AICreation/                # Project root
 │   │   ├── kg_service.py     # Knowledge graph management business logic
 │   │   ├── scene_service.py  # Scene related business logic
 │   │   ├── chapter_file_service.py # Chapter file related business logic
+│   │   ├── schemas.py        # Pydantic
 │   │   └── base_service.py   # Service base class (with singleton)
 │   ├── utils/            # Utility directory
 │   │   ├── image_effect.py   # Image effects utility
