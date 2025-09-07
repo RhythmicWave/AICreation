@@ -142,7 +142,7 @@ After extraction, you can view the results in the character library. If "Referen
 
 - If you are not satisfied with a reference image, you can generate it multiple times or modify the prompt and regenerate (remember to save after modifying the prompt).
 - For better image generation results, try to generate full-body reference images for characters, and you can generate them multiple times for better outcomes.
-- Added the ability to upload custom images. However, please ensure that the uploaded images match the prompts as closely as possible.
+- Added the ability to upload local reference images. However, please ensure that the uploaded images match the prompts as closely as possible.
 
 ### 4. Chapter Segmentation
 ![Chapter Segmentation](docs/image4.png)
