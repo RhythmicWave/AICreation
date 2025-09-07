@@ -23,7 +23,9 @@ export default {
     moveUp: '上移',
     moveDown: '下移',
     loadError: '加载失败',
-    noDataToProcess: '没有数据可处理'
+    noDataToProcess: '没有数据可处理',
+    upload:'上传',
+    uploadSuccess:'上传成功'
   },
   header: {
     logo: 'AI 创作'

@@ -54,6 +54,17 @@ export const mediaApi = {
 
   cancelTask(taskId: string) {
     return request.post('/media/cancel', { task_id: taskId })
+  },
+
+  uploadReferenceImage(project_name: string, chapter_name: string, span_id: string, file: File) {
+    const form = new FormData()
+    form.append('project_name', project_name)
+    form.append('chapter_name', chapter_name)
+    form.append('span_id', span_id)
+    form.append('file', file)
+    return request.post('/media/upload_image', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
   }
 }
 

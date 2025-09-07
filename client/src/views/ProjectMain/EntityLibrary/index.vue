@@ -84,19 +84,26 @@
         </template>
       </el-table-column>
 
-      <el-table-column :label="t('entity.referenceImage')" width="200" align="center">
+      <el-table-column :label="t('entity.referenceImage')" width="260" align="center">
         <template #default="{ row }">
           <div>
             <el-image v-if="row.reference_image" :src="row.reference_image" fit="contain" :preview-src-list="[row.reference_image]" :initial-index="0" preview-teleported height="90%">
               <template #error><div class="no-image">{{ t('common.loadError') }}</div></template>
             </el-image>
-            <el-button 
-              type="primary" 
-              style="min-width: 120px; margin-top: 10px;" 
-              @click="generateImage(row)"
-              :loading="isGenerating"
-              :disabled="isGenerating"
-            >{{ t('entity.generateImage') }}</el-button>
+            <div style="display:flex; gap:8px; justify-content:center; margin-top:10px;">
+              <el-button 
+                type="primary" 
+                style="min-width: 120px;" 
+                @click="generateImage(row)"
+                :loading="isGenerating"
+                :disabled="isGenerating"
+              >{{ t('entity.generateImage') }}</el-button>
+              <el-button 
+                type="warning" 
+                style="min-width: 120px;" 
+                @click="() => onClickUpload(row)"
+              >{{ t('common.upload') || '上传图片' }}</el-button>
+            </div>
           </div>
         </template>
       </el-table-column>
@@ -142,6 +149,9 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- 隐藏文件选择器，用于上传参考图 -->
+    <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileSelected" />
   </div>
 </template>
 
@@ -198,6 +208,10 @@ const imageSettings = ref<ImageSettings>({
   height: 768,
   style: 'sai-anime'
 });
+
+// 上传参考图状态
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const pendingUploadRow = ref<Entity | null>(null);
 
 // --- 根据实体类型动态配置 ---
 const config = computed(() => {
@@ -328,11 +342,11 @@ const generateImage = async (row: Entity) => {
   if (entityType.value === 'character') {
     prompts = [{
       id: row.name,
-      prompt: row.attributes.description +
+      prompt: (row.attributes.description || '') +
         ", full body, facing forward, front view, standing in a neutral pose, camera at a far distance, entire figure visible, plain light gray monochromatic background, minimalist environment, subtle shadow, no close-up, no text, no logo, no watermark"
     }];
   } else {
-    prompts = [{ id: row.name, prompt: row.attributes.description+"no human,wide-angle lens, establishing shot, vast environment, depth of field, cinematic scale" || '' }];
+    prompts = [{ id: row.name, prompt: (row.attributes.description || '') + "no human,wide-angle lens, establishing shot, vast environment, depth of field, cinematic scale" }];
   }
   start(prompts, () => mediaApi.generateImages({
     project_name: projectName.value,
@@ -340,6 +354,34 @@ const generateImage = async (row: Entity) => {
     imageSettings: imageSettings.value,
     prompts,
   }));
+};
+
+// 上传逻辑
+const onClickUpload = (row: Entity) => {
+  pendingUploadRow.value = row;
+  fileInputRef.value?.click();
+};
+
+const onFileSelected = async (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const file = input.files && input.files[0];
+  if (!file || !pendingUploadRow.value) return;
+  try {
+    await mediaApi.uploadReferenceImage(
+      projectName.value,
+      config.value.imageChapter,
+      pendingUploadRow.value.name,
+      file
+    );
+    ElMessage.success(t('common.uploadSuccess') || '上传成功');
+    await fetchEntities();
+  } catch (err) {
+    ElMessage.error(String(err));
+  } finally {
+    // 清理 input 值，便于下次选择同名文件也能触发 change
+    if (fileInputRef.value) fileInputRef.value.value = '';
+    pendingUploadRow.value = null;
+  }
 };
 
 const generateImagesForSelected = () => {

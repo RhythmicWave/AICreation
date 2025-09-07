@@ -23,7 +23,9 @@ export default {
     moveUp: 'Move Up',
     moveDown: 'Move Down',
     loadError: 'Failed to load',
-    noDataToProcess: 'No data to process'
+    noDataToProcess: 'No data to process',
+    upload:'Upload',
+    uploadSuccess:'Upload Success'
   },
   header: {
     logo: 'AI Creation'

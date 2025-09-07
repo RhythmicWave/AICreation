@@ -7,6 +7,7 @@ import os
 import datetime
 import logging
 from fastapi.responses import FileResponse
+from fastapi import UploadFile, File, Form
 
 config = load_config()
 router = APIRouter(prefix='/media')
@@ -285,4 +286,35 @@ async def get_media_audio(project_name: str, chapter_name: str, span_id: str):
         
     except Exception as e:
         logger.error(f"Error accessing audio: {str(e)}")
+        return make_response(status='error', msg=str(e))
+
+@router.post('/upload_image')
+async def upload_reference_image(
+    project_name: str = Form(...),
+    chapter_name: str = Form(...),
+    span_id: str = Form(...),
+    file: UploadFile = File(...)
+):
+    """上传参考图片，保存到与生成图片一致的路径：
+    projects/{project_name}/{chapter_name}/{span_id}/image.png
+    """
+    try:
+        if not all([project_name, chapter_name, span_id, file]):
+            return make_response(status='error', msg='缺少必要参数：project_name, chapter_name, span_id, file')
+
+        # 目标目录与文件
+        target_dir = os.path.join(config['projects_path'], project_name, chapter_name, str(span_id))
+        os.makedirs(target_dir, exist_ok=True)
+        target_path = os.path.join(target_dir, 'image.png')
+
+        # 读取上传内容
+        content = await file.read()
+
+        # 直接写入二进制，前端读取使用 image.png 路径
+        with open(target_path, 'wb') as f:
+            f.write(content)
+
+        return make_response(data=True, msg='上传成功')
+    except Exception as e:
+        logger.error(f"Error uploading image: {str(e)}")
         return make_response(status='error', msg=str(e))
