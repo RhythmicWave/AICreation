@@ -60,7 +60,7 @@ npm install
 
 3. ComfyUI 模型配置
 - 通过ComfyUI Manager安装节点:comfy-plasma
-- 通过ComfyUI Manager安装节点:ComfyUI-nunchaku(最新版)
+- 通过ComfyUI Manager安装节点:ComfyUI-nunchaku(v0.3.3)
 - 在ComfyUI\custom_nodes\ComfyUI-nunchaku\example_workflows中找到install_wheel.json，放入ComfyUI中，选择最新version(目前是v0.3.1)，运行工作流，自动安装nunchaku
 - 确保已经安装了CUDA
 

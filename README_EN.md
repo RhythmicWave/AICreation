@@ -55,7 +55,7 @@ npm install
 
 3. ComfyUI Model Configuration
 - Install node via ComfyUI Manager: `comfy-plasma`
-- Install node via ComfyUI Manager: `ComfyUI-nunchaku` (latest version)
+- Install node via ComfyUI Manager: `ComfyUI-nunchaku` (v0.3.3)
 - Find `install_wheel.json` in `ComfyUI\custom_nodes\ComfyUI-nunchaku\example_workflows`, load it into ComfyUI, select the latest version (currently v0.3.1), and run the workflow to automatically install nunchaku.
 - Ensure CUDA is installed.
 
