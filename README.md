@@ -121,7 +121,7 @@ npm run dev
 - 模型名称
 
 > **没有Key？获取 API Key的方法**：
-> 通过 [注册链接](https://cloud.siliconflow.cn/i/Je8e1K0b) 可获得 2000 万免费 token
+> 通过 [注册链接](https://cloud.siliconflow.cn/i/7JM0ZZTT) 可获得 2000 万免费 token
 > 注册后在主页面选择：API密钥 → 新建API密钥
 
 修改配置后可能需要重启server

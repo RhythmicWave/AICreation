@@ -117,7 +117,7 @@ Key Configuration Items:
 - Model Name
 
 > **No Key? How to get an API Key**:
-> Register through [this link](https://cloud.siliconflow.cn/i/Je8e1K0b) to get 20 million free tokens.
+> Register through [this link](https://cloud.siliconflow.cn/i/7JM0ZZTT) to get 20 million free tokens.
 > After registration, on the main page, select: API Keys → Create New API Key.
 
 You may need to restart the server after modifying the configuration.
