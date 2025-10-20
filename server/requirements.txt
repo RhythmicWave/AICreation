@@ -12,8 +12,8 @@ numpy>=1.21.6
 pillow>=9.5.0
 imageio-ffmpeg>=0.2.0
 proglog<=1.0.0
-langchain==0.3.24
-langchain-openai==0.3.19
+langchain<=0.3.27
+langchain-openai
 pydantic==2.11.7
 json-repair
 
